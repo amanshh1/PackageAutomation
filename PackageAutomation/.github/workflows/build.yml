@@ -1,0 +1,284 @@
+name: Search & build Intunewin
+on:
+    workflow_dispatch:
+      inputs:
+        ticket:
+          description: 'RITM'
+          required: true
+          type: string
+        appName:
+          description: 'Application Name'
+          required: true
+          default: '7-Zip'
+          type: string
+        appId:
+          description: 'Winget Application ID'
+          required: true
+          type: string
+        registryList:
+          description: 'Registry entries as JSON array'
+          required: false
+          type: string
+        appLogo:
+          description: 'Base64 encoded logo (PNG/JPEG)'
+          required: false
+          type: string
+        dependentApp:
+          description: 'Dependent Application Name'
+          required: false
+          type: string
+
+permissions:
+  contents: read     # ← REQUIRED for checkout
+  actions:  write    # ← REQUIRED for repository_dispatch
+  id-token: write    # ← REQUIRED for OIDC in IntuneCommitPackage.yml
+
+env:
+  APP_NAME: ${{ github.event.inputs.appName || 'Default App' }}
+  APP_ID: ${{ github.event.inputs.appId }}
+  R_List: ${{ github.event.inputs.registryList }}
+  APP_Logo: ${{ github.event.inputs.appLogo }}
+  RITM_NUMBER: ${{ github.event.inputs.ticket }}
+jobs:
+  Search-App:
+    runs-on: windows-2025
+    environment: AutomationTesting
+    outputs:
+      job_status:     ${{ job.status }}
+      app_id_exist:   ${{steps.search.outputs.app_id_exist}}
+      dep_app_id:     ${{steps.search.outputs.dep_app_id}}
+      app_id:         ${{ steps.search.outputs.app_id }}
+      app_name:       ${{ steps.search.outputs.app_name }}
+      app_created:    ${{ steps.search.outputs.app_created }}
+      app_Updated:    ${{ steps.search.outputs.app_Updated }}
+      dep_app_exist:  ${{ steps.search.outputs.dep_app_exist }}
+      message:        ${{ steps.search.outputs.message }}
+      proceed:        ${{ steps.search.outputs.proceed }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Federated login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        allow-no-subscriptions: true
+
+    - name: Search-application
+      id: search
+      shell: powershell
+      run: |  
+            $DepAppExist= '${{ inputs.dependentApp}}'
+            if (-not [string]::IsNullOrWhiteSpace($DepAppExist) -and $DepAppExist -ne 'undefined')  
+            {
+              ${{ github.workspace }}\automation-seed\workflow-scripts\search-app\searchApp.ps1 -AppName ${{ inputs.appName }} -DepApp ${{ inputs.dependentApp}}
+            }
+            else{
+              ${{ github.workspace }}\automation-seed\workflow-scripts\search-app\searchApp.ps1 -AppName ${{ inputs.appName }}
+            
+            }
+            
+    - name: Print Step Outputs
+      shell: powershell
+      run: |
+
+          Write-Host "===== APP DETAILS ====="
+          Write-Host "Status:    ${{ job.status }}"
+          Write-Host "Exists:    ${{ steps.search.outputs.app_id_exist }}"
+          Write-Host "App ID:    ${{ steps.search.outputs.app_id }}"
+          Write-Host "App Name:  ${{ steps.search.outputs.app_name }}"
+          Write-Host "Created:   ${{ steps.search.outputs.app_created }}"
+          Write-Host "Updated:   ${{ steps.search.outputs.app_Updated }}"
+          Write-Host "DepedentApp:   ${{ steps.search.outputs.dep_app_exist }}"
+          Write-Host "Message:   ${{ steps.search.outputs.message }}"
+          Write-Host "Proceed:   ${{ steps.search.outputs.proceed }}"
+          Write-Host "======================="
+    - name: Validate the condition
+      shell: powershell
+      run: write-host "Hello"
+
+
+  notify-App-Status:
+    needs: Search-App
+    if: ${{ needs.Search-App.outputs.proceed == 'false' }}
+    uses: ./.github/workflows/ServiceNowNotifier.yml
+    with:
+      ticket: ${{ github.event.inputs.ticket }}
+      job_status: ${{ needs.Search-App.outputs.job_status }}
+      success_message: |
+        Application Already Exist in System
+        ${{ needs.Search-App.outputs.message }}
+        
+      failure_message: |
+              Packaging & Deployment is in progress.
+      state: "work_in_progress"
+    secrets: inherit
+  Support-Silent-Flag:
+     needs: Search-App
+     runs-on: windows-2025
+     if: ${{ needs.Search-App.outputs.proceed == 'true' }}
+     steps:  
+      - name: Check Silent Support
+        shell: powershell
+        run: |
+          Write-Host "Application support Silent Installation"
+        
+  Silent-Installation:
+     needs: [Search-App,Support-Silent-Flag]
+     if: ${{ needs.Search-App.outputs.proceed == 'true' }}
+     runs-on: windows-2025
+     steps:  
+
+      - name: Install with Silent switch
+        shell: powershell
+        run: |
+          Write-Host "Application Installed successfully with silent flag"
+  Silent-Unistallation:
+     runs-on: windows-2025
+     needs: [Silent-Installation,Search-App]
+     if: ${{ needs.Search-App.outputs.proceed == 'true' }}
+     outputs:
+      appName: ${{ github.event.inputs.appName }}   # ← Pass appName to next job
+      job_status: ${{ job.status }}
+     steps:  
+      - name: Install with Silent switch
+        shell: powershell
+        run: |
+          Write-Host "Application Uninstalled successfully with silent flag"
+  notify:
+    needs: [Silent-Unistallation,Search-App]
+    if: ${{ needs.Search-App.outputs.app_id_exist == 'false' }}
+    uses: ./.github/workflows/ServiceNowNotifier.yml
+    with:
+      ticket: ${{ github.event.inputs.ticket }}
+      job_status: ${{ needs.Silent-Unistallation.outputs.job_status }}
+      success_message: " The packaging and build process for ${{ github.event.inputs.appName }} has been initiated. The application is currently being processed, and this may take a few moments. Further updates will be provided once completed"
+      failure_message: "Failed to initiate the packaging and build process for ${{ github.event.inputs.appName }}."
+      state: "work_in_progress"
+    secrets: inherit
+
+  Search-Build-Application:
+    runs-on: windows-2025
+    needs: [Silent-Unistallation,Search-App]
+    if: ${{ needs.Search-App.outputs.proceed == 'true' }}
+    environment: AutomationTesting
+    outputs:
+      appName: ${{ github.event.inputs.appName }}   # ← Pass appName to next job
+      job_status: ${{ job.status }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Search application in winget
+        shell: powershell
+        run: |
+          D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/application-wrapper/app-wrap.ps1 `
+          -SearchApp "$env:APP_NAME" `
+          -RegistryJson "$env:R_List" `
+          -AppID "$env:APP_ID"
+      - name: Modify the deployment file
+        shell: powershell
+        run: |
+          D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/application-wrapper/ReplaceFile.ps1
+
+      - name: Build intunewin package
+        id: build_step
+        shell: powershell
+        run: |
+          D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/build/build-intunewin.ps1 -appName "$env:APP_NAME"
+          $outFolder = Join-Path $env:GITHUB_WORKSPACE "automation-seed/baseline-scripts/IntuneDeploymentPackage/$env:APP_NAME"
+          Write-Host "Looking for output inside: $outFolder"
+          $IntuneWinfile = Get-ChildItem -Path $outFolder -Filter "*.intunewin" -Recurse | Select-Object -First 1
+          if (-not $IntuneWinfile) {
+           Write-Error "No .intunewin file generated in $outFolder"
+           exit 1
+          }
+          Write-Host "Generated file: $($file.FullName)"
+          #  Publish step output for downstream steps
+          "intune_file_path=$($IntuneWinfile.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $deployFolder= Join-Path $env:GITHUB_WORKSPACE "automation-seed/baseline-scripts/UniversalPackageDeployer/"
+          $deployPs1 = Get-ChildItem -Path $deployFolder -Filter "Deploy-Application.ps1" -Recurse | Select-Object -First 1
+          "deployps1_file_path=$($deployPs1.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Debug workflow inputs
+        run: |
+          echo "ticket=${{ inputs.ticket }}"
+          echo "appLogo=${{ inputs.appLogo }}"
+      - name: Organise Artifact
+        id: accu_artifact
+        shell: pwsh
+        env:
+          SN_inst: ${{ secrets.SNOW_INSTANCE}}
+          SN_USER: ${{ secrets.SNOW_USER }}
+          SN_PASS: ${{ secrets.SNOW_PASS }}
+        run: |
+          Write-Host ${{ github.event.inputs.appLogo }}
+          # Create output directory
+          New-Item -ItemType Directory -Path output -Force | Out-Null
+
+          # Copy existing build outputs
+          Copy-Item "${{ steps.build_step.outputs.intune_file_path }}" "output\" -Force
+          Copy-Item "${{ steps.build_step.outputs.deployps1_file_path }}" "output\" -Force
+
+          # ---- Download logo from ServiceNow ----
+          $pair = "$env:SN_USER`:$env:SN_PASS"
+          $instance=$env:SN_inst
+          $sysid = "${{ inputs.appLogo }}"
+          
+          $auth = [Convert]::ToBase64String(
+              [Text.Encoding]::ASCII.GetBytes($pair)
+          )
+
+          if ([string]::IsNullOrWhiteSpace($sysid) -or $sysid -eq 'undefined') {
+            Write-Host "No App Logo sys_id provided. Skipping logo download."
+          }
+          else {
+              Write-Host "Downloading App Logo with sys_id: $sysid"
+
+              Invoke-RestMethod `
+                -Uri "https://$instance.service-now.com/api/now/attachment/$sysid/file" `
+                -Headers @{
+                    Authorization = "Basic $auth"
+                    Accept        = "application/octet-stream"
+                } `
+          -OutFile "output\app-logo.png"
+          }
+            
+
+          # Optional validation
+          if (-Not (Test-Path "output\app-logo.png")) {
+              Write-Host "Failed to download application logo from ServiceNow"
+          }
+
+          # Expose output path
+          "output_path=$(Resolve-Path output)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            
+
+      - name: Upload  artifact
+        uses: actions/upload-artifact@v4
+        with:
+            name: "${{ env.APP_NAME }}-package"
+            path: ${{ steps.accu_artifact.outputs.output_path}}   # <-- Now resolves correctly
+            if-no-files-found: error
+            compression-level: 6
+  notify-Build:
+    needs: [Search-Build-Application]
+    uses: ./.github/workflows/ServiceNowNotifier.yml
+    with:
+      ticket: ${{ github.event.inputs.ticket }}
+      job_status: ${{ needs.Search-Build-Application.outputs.job_status }}
+      success_message: "The build and packaging process for ${{ github.event.inputs.appName }}  completed successfully with no issues."
+      failure_message: "The build and packaging process for ${{ github.event.inputs.appName }} failed."
+      state: "work_in_progress"
+    secrets: inherit
+
+  call-deploy:
+    needs: [Search-Build-Application,Search-App]
+    if: ${{ needs.Search-Build-Application.result == 'success'}}
+    uses: ./.github/workflows/deploy.yml
+    with:
+     appName: ${{ needs.Search-Build-Application.outputs.appName }}
+     appLogo: ${{ github.event.inputs.appLogo }}
+     ticket:  ${{ github.event.inputs.ticket }}
+     dependentApp: ${{needs.Search-App.outputs.dep_app_id}}
+    secrets: inherit
+   
