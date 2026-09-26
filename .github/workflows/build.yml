@@ -71,10 +71,10 @@ jobs:
             $DepAppExist= '${{ inputs.dependentApp}}'
             if (-not [string]::IsNullOrWhiteSpace($DepAppExist) -and $DepAppExist -ne 'undefined')  
             {
-              ${{ github.workspace }}\automation-seed\workflow-scripts\search-app\searchApp.ps1 -AppName ${{ inputs.appName }} -DepApp ${{ inputs.dependentApp}}
+              ${{ github.workspace }}\PackageAutomation\automation-seed\workflow-scripts\search-app\searchApp.ps1 -AppName ${{ inputs.appName }} -DepApp ${{ inputs.dependentApp}}
             }
             else{
-              ${{ github.workspace }}\automation-seed\workflow-scripts\search-app\searchApp.ps1 -AppName ${{ inputs.appName }}
+              ${{ github.workspace }}\PackageAutomation\automation-seed\workflow-scripts\search-app\searchApp.ps1 -AppName ${{ inputs.appName }}
             
             }
             
@@ -186,7 +186,7 @@ jobs:
         shell: powershell
         run: |
           D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/build/build-intunewin.ps1 -appName "$env:APP_NAME"
-          $outFolder = Join-Path $env:GITHUB_WORKSPACE "automation-seed/baseline-scripts/IntuneDeploymentPackage/$env:APP_NAME"
+          $outFolder = Join-Path $env:GITHUB_WORKSPACE "PackageAutomation/automation-seed/baseline-scripts/IntuneDeploymentPackage/$env:APP_NAME"
           Write-Host "Looking for output inside: $outFolder"
           $IntuneWinfile = Get-ChildItem -Path $outFolder -Filter "*.intunewin" -Recurse | Select-Object -First 1
           if (-not $IntuneWinfile) {
@@ -196,7 +196,7 @@ jobs:
           Write-Host "Generated file: $($file.FullName)"
           #  Publish step output for downstream steps
           "intune_file_path=$($IntuneWinfile.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          $deployFolder= Join-Path $env:GITHUB_WORKSPACE "automation-seed/baseline-scripts/UniversalPackageDeployer/"
+          $deployFolder= Join-Path $env:GITHUB_WORKSPACE "PackageAutomation/automation-seed/baseline-scripts/UniversalPackageDeployer/"
           $deployPs1 = Get-ChildItem -Path $deployFolder -Filter "Deploy-Application.ps1" -Recurse | Select-Object -First 1
           "deployps1_file_path=$($deployPs1.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Debug workflow inputs
