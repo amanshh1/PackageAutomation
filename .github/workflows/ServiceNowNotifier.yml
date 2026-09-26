@@ -46,65 +46,66 @@ jobs:
           SUCCESS_MSG: ${{ inputs.success_message }}
           FAILURE_MSG: ${{ inputs.failure_message }}
         run: |
-          # 1. Build status-specific message
-          if ($env:JOB_STATUS -eq "success") {
-            $workNotes = " $($env:SUCCESS_MSG)"
-          } else {
-            $workNotes = " $($env:FAILURE_MSG)"
-          }
-          
-          # 2. State updates (REMOVED $workNotes text additions)
-          $stateBody = $null
-          if ($env:STATE) {
-            switch ($env:STATE.ToLower()) {
-              "work_in_progress" { 
-                $stateBody = @{ state = 2 }
-              }
-              "close" { 
-                $stateBody = @{ close_code = "successful"; state = 3 }
-              }
-              "skip" { 
-                $stateBody = @{ close_code = "cancelled"; state = 7 }
+          <# 1. Build status-specific message
+            if ($env:JOB_STATUS -eq "success") {
+              $workNotes = " $($env:SUCCESS_MSG)"
+            } else {
+              $workNotes = " $($env:FAILURE_MSG)"
+            }
+            
+            # 2. State updates (REMOVED $workNotes text additions)
+            $stateBody = $null
+            if ($env:STATE) {
+              switch ($env:STATE.ToLower()) {
+                "work_in_progress" { 
+                  $stateBody = @{ state = 2 }
+                }
+                "close" { 
+                  $stateBody = @{ close_code = "successful"; state = 3 }
+                }
+                "skip" { 
+                  $stateBody = @{ close_code = "cancelled"; state = 7 }
+                }
               }
             }
-          }
-          
-          # 3. Setup Headers & Auth (UTF-8 enforced)
-          $auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("${env:SNOW_USER}:${env:SNOW_PASS}"))
-          $headers = @{
-              'Accept'        = 'application/json'
-              'Authorization' = "Basic $auth"
-          }
-          
-          try {
-            # 4. Get RITM sys_id (Optimized with sysparm_fields=sys_id)
-            $getUri = "https://${env:SNOW_INSTANCE}.service-now.com/api/now/table/sc_req_item?sysparm_query=number=${env:RITM_NUMBER}&sysparm_limit=1&sysparm_fields=sys_id"
-            $response = Invoke-RestMethod -Uri $getUri -Method Get -Headers $headers -ContentType 'application/json; charset=utf-8'
             
-            # Safe check for empty results
-            if (-not $response.result -or $response.result.Count -eq 0) { 
-              Write-Error "RITM ${env:RITM_NUMBER} not found in ServiceNow."
-              exit 1 
+            # 3. Setup Headers & Auth (UTF-8 enforced)
+            $auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("${env:SNOW_USER}:${env:SNOW_PASS}"))
+            $headers = @{
+                'Accept'        = 'application/json'
+                'Authorization' = "Basic $auth"
             }
-            $sysId = $response.result[0].sys_id
             
-            # 5. Update RITM
-            $body = @{ work_notes = $workNotes }
-            if ($stateBody) { $body += $stateBody }
-            
-            # Convert to JSON with forced UTF-8 to protect emojis
-            $jsonBody = $body | ConvertTo-Json -Depth 10 -Compress
-            $jsonBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
-            
-            $patchHeaders = $headers.Clone()
-            $patchHeaders['Content-Type'] = 'application/json; charset=utf-8'
-            
-            $patchUri = "https://${env:SNOW_INSTANCE}.service-now.com/api/now/table/sc_req_item/$sysId"
-            Invoke-RestMethod -Uri $patchUri -Method Patch -Headers $patchHeaders -Body $jsonBytes
-            
-            Write-Host "✅ Successfully updated ${env:RITM_NUMBER}: $workNotes"
-            
-          } catch {
-            Write-Error "ServiceNow API Call Failed: $_"
-            exit 1
-          }
+            try {
+              # 4. Get RITM sys_id (Optimized with sysparm_fields=sys_id)
+              $getUri = "https://${env:SNOW_INSTANCE}.service-now.com/api/now/table/sc_req_item?sysparm_query=number=${env:RITM_NUMBER}&sysparm_limit=1&sysparm_fields=sys_id"
+              $response = Invoke-RestMethod -Uri $getUri -Method Get -Headers $headers -ContentType 'application/json; charset=utf-8'
+              
+              # Safe check for empty results
+              if (-not $response.result -or $response.result.Count -eq 0) { 
+                Write-Error "RITM ${env:RITM_NUMBER} not found in ServiceNow."
+                exit 1 
+              }
+              $sysId = $response.result[0].sys_id
+              
+              # 5. Update RITM
+              $body = @{ work_notes = $workNotes }
+              if ($stateBody) { $body += $stateBody }
+              
+              # Convert to JSON with forced UTF-8 to protect emojis
+              $jsonBody = $body | ConvertTo-Json -Depth 10 -Compress
+              $jsonBytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
+              
+              $patchHeaders = $headers.Clone()
+              $patchHeaders['Content-Type'] = 'application/json; charset=utf-8'
+              
+              $patchUri = "https://${env:SNOW_INSTANCE}.service-now.com/api/now/table/sc_req_item/$sysId"
+              Invoke-RestMethod -Uri $patchUri -Method Patch -Headers $patchHeaders -Body $jsonBytes
+              
+              Write-Host "✅ Successfully updated ${env:RITM_NUMBER}: $workNotes"
+              
+            } catch {
+              Write-Error "ServiceNow API Call Failed: $_"
+              exit 1
+            }
+          <#
