@@ -71,10 +71,11 @@ jobs:
             Write-Error "No .intunewin file found in ./package"
             exit 1
           }
-            if (-not $logofile) {
-            Write-Error "No specific logo image found"
-            exit 0
-          }
+          <#  if (-not $logofile) {
+              Write-Error "No specific logo image found"
+              exit 0
+            }
+          #>
 
            Write-Host "Found package: $($file.FullName)"
            Write-Host "Found Logo file: $($logofile.FullName)"
