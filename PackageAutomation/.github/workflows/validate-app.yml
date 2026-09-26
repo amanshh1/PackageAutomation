@@ -1,0 +1,69 @@
+name: Validate-application-in-intune
+on:
+  workflow_dispatch:
+    inputs:
+      ticket:
+        description: "RITM"
+        required: true
+        type: string
+      appName:
+        description: "Application name to deploy"
+        required: true
+        type: string
+      appLogo:
+        description: "Application Logo"
+        required: false
+        type: string
+      groupId:
+        description: "Azure AD Group ID (optional)"
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  Search-App:
+    runs-on: windows-2025
+    environment: AutomationTesting
+    outputs:
+      job_status: ${{ job.status }}
+      app_id: ${{ steps.search.outputs.app_id }}
+      app_name: ${{ steps.search.outputs.app_name }}
+      app_created: ${{ steps.search.outputs.app_created }}
+      app_Updated: ${{ steps.search.outputs.app_Updated }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Test Federated login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        allow-no-subscriptions: true
+
+    - name: Search-application
+      id: search
+      shell: powershell
+      run:  ${{ github.workspace }}\automation-seed\workflow-scripts\search-app\searchApp.ps1 -AppName ${{ inputs.appName }}
+  notify-Build:
+    needs: Search-App
+    if: always()
+    uses: ./.github/workflows/ServiceNowNotifier.yml
+    with:
+      ticket: ${{ github.event.inputs.ticket }}
+      job_status: ${{ needs.Search-App.outputs.job_status }}
+
+      success_message: |
+        Application Already Exist in System
+        AppID: ${{ needs.Search-App.outputs.app_id }}
+        AppName: ${{ needs.Search-App.outputs.app_name }}
+        CreatedOn: ${{ needs.Search-App.outputs.app_created }}
+        LastModifiedOn: ${{ needs.Search-App.outputs.app_Updated }}
+      failure_message: >
+        The build and packaging process for
+        ${{ github.event.inputs.appName }} failed. 
+      state: "work_in_progress"
+    secrets: inherit
