@@ -518,16 +518,16 @@ if (-not $SetupFilePath -or -not $SetupFilePath.Trim()) {
 }
 
 
-# Check & load $applogo
-if (Test-Path $AppLogo) {
-    $LogoBase64 = [Convert]::ToBase64String(
-        [System.IO.File]::ReadAllBytes($AppLogo)
-    )
-}
-else {
-    $LogoBase64 = $AppLogo
-}
-
+<# Check & load $applogo
+    if (Test-Path $AppLogo) {
+        $LogoBase64 = [Convert]::ToBase64String(
+            [System.IO.File]::ReadAllBytes($AppLogo)
+        )
+    }
+    else {
+        $LogoBase64 = $AppLogo
+    }
+#>
 
 # --- 1) Create COMPLETE Win32LobApp with all required properties ---
 if($null -ne $LogoBase64 -and $LogoBase64 -ne "" -and $LogoBase64 -ne "undefined"){
