@@ -212,47 +212,47 @@ jobs:
           SN_PASS: ${{ secrets.SNOW_PASS }}
         run: |
          <# This is a temoporary Comment
-          Write-Host ${{ github.event.inputs.appLogo }}
-          # Create output directory
-          New-Item -ItemType Directory -Path output -Force | Out-Null
+                Write-Host ${{ github.event.inputs.appLogo }}
+                # Create output directory
+                New-Item -ItemType Directory -Path output -Force | Out-Null
 
-          # Copy existing build outputs
-          Copy-Item "${{ steps.build_step.outputs.intune_file_path }}" "output\" -Force
-          Copy-Item "${{ steps.build_step.outputs.deployps1_file_path }}" "output\" -Force
+                # Copy existing build outputs
+                Copy-Item "${{ steps.build_step.outputs.intune_file_path }}" "output\" -Force
+                Copy-Item "${{ steps.build_step.outputs.deployps1_file_path }}" "output\" -Force
 
-          # ---- Download logo from ServiceNow ----
-          $pair = "$env:SN_USER`:$env:SN_PASS"
-          $instance=$env:SN_inst
-          $sysid = "${{ inputs.appLogo }}"
-          
-          $auth = [Convert]::ToBase64String(
-              [Text.Encoding]::ASCII.GetBytes($pair)
-          )
+                # ---- Download logo from ServiceNow ----
+                $pair = "$env:SN_USER`:$env:SN_PASS"
+                $instance=$env:SN_inst
+                $sysid = "${{ inputs.appLogo }}"
+                
+                $auth = [Convert]::ToBase64String(
+                    [Text.Encoding]::ASCII.GetBytes($pair)
+                )
 
-          if ([string]::IsNullOrWhiteSpace($sysid) -or $sysid -eq 'undefined') {
-            Write-Host "No App Logo sys_id provided. Skipping logo download."
-          }
-          else {
-              Write-Host "Downloading App Logo with sys_id: $sysid"
+                if ([string]::IsNullOrWhiteSpace($sysid) -or $sysid -eq 'undefined') {
+                  Write-Host "No App Logo sys_id provided. Skipping logo download."
+                }
+                else {
+                    Write-Host "Downloading App Logo with sys_id: $sysid"
 
-              Invoke-RestMethod `
-                -Uri "https://$instance.service-now.com/api/now/attachment/$sysid/file" `
-                -Headers @{
-                    Authorization = "Basic $auth"
-                    Accept        = "application/octet-stream"
-                } `
-          -OutFile "output\app-logo.png"
-          }
-            
+                    Invoke-RestMethod `
+                      -Uri "https://$instance.service-now.com/api/now/attachment/$sysid/file" `
+                      -Headers @{
+                          Authorization = "Basic $auth"
+                          Accept        = "application/octet-stream"
+                      } `
+                -OutFile "output\app-logo.png"
+                }
+                  
 
-          # Optional validation
-          if (-Not (Test-Path "output\app-logo.png")) {
-              Write-Host "Failed to download application logo from ServiceNow"
-          }
+                # Optional validation
+                if (-Not (Test-Path "output\app-logo.png")) {
+                    Write-Host "Failed to download application logo from ServiceNow"
+                }
 
-          # Expose output path
-          "output_path=$(Resolve-Path output)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        #>
+                # Expose output path
+                "output_path=$(Resolve-Path output)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          #>
 
       - name: Upload  artifact
         uses: actions/upload-artifact@v4
