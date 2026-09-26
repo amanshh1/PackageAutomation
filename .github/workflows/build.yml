@@ -147,7 +147,7 @@ jobs:
           Write-Host "Application Uninstalled successfully with silent flag"
   notify:
     needs: [Silent-Unistallation,Search-App]
-    if: ${{ needs.Search-App.outputs.app_id_exist == 'false' }}
+    if: false # ${{ needs.Search-App.outputs.app_id_exist == 'false' }}
     uses: ./.github/workflows/ServiceNowNotifier.yml
     with:
       ticket: ${{ github.event.inputs.ticket }}
@@ -211,6 +211,7 @@ jobs:
           SN_USER: ${{ secrets.SNOW_USER }}
           SN_PASS: ${{ secrets.SNOW_PASS }}
         run: |
+         <# This is a temoporary Comment
           Write-Host ${{ github.event.inputs.appLogo }}
           # Create output directory
           New-Item -ItemType Directory -Path output -Force | Out-Null
@@ -251,7 +252,7 @@ jobs:
 
           # Expose output path
           "output_path=$(Resolve-Path output)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            
+        #>
 
       - name: Upload  artifact
         uses: actions/upload-artifact@v4
@@ -262,6 +263,7 @@ jobs:
             compression-level: 6
   notify-Build:
     needs: [Search-Build-Application]
+    if: false 
     uses: ./.github/workflows/ServiceNowNotifier.yml
     with:
       ticket: ${{ github.event.inputs.ticket }}
