@@ -57,11 +57,16 @@ $version       = if ($versionLine)   { ($versionLine   -replace '^Version:\s*(.+
 
 $publisherLine = $lines | Where-Object { $_ -match '^Publisher:\s*(.+)$' }
 $publisher     = if ($publisherLine) { ($publisherLine -replace '^Publisher:\s*(.+)$', '$1').Trim() } else { '' }
+
+$descriptionLine = $lines | Where-Object { $_ -match '^Description:\s*(.+)$' }
+$description     = if ($descriptionLine) { ($descriptionLine -replace '^Description:\s*(.+)$', '$1').Trim() } else { '' }
+
 Write-Host "-----Application-Info---------"
 Write-Host $publisher
 Write-Host $version
 Write-Host $name
 Write-Host $id
+Write-Host $description
 Write-Host "-----Info-End-Here---------"
 # Define new values
 
@@ -79,6 +84,7 @@ $newValues = @{
     'appScriptDate'    = (Get-Date).ToString('dd/MM/yyyy')
     'appScriptAuthor'  = 'Github-Intune-Automation'
     'WingetId'         = $id
+    'Description'      = $description 
 }
 
 # Read file content
@@ -124,4 +130,19 @@ if($RegistryJson -ne $null){
     Set-Content -Path $filePath -Value $UpdatedContent
 
     Write-Host "Updated PowerShell script successfully!"
+
+    # Publish values as GitHub Actions step outputs
+    if (-not [String]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
+ 
+        "publisher=$publisher" |
+        Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+ 
+        "description=$description" |
+        Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+        Write-Host "Application details published to GITHUB_OUTPUT."
+    }
+    else {
+        Write-Warning "GITHUB_OUTPUT is not available. GitHub step outputs were not created."
+    }
 }

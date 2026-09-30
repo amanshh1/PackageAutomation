@@ -26,7 +26,7 @@ param(
     [string]$AppName,
     [string]$AppLogo,
     [string]$Publisher = "Custom App",
-    [string]$Description = "Deployed via GitHub Actions, As part of AppLifeCycle Automation Deployment of Winget Package only",
+    [string]$Description,
     [string]$InstallCmd = "setup.exe /silent",
     [string]$UninstallCmd = "setup.exe /uninstall /silent",
     [string]$DependentAppId,
@@ -390,8 +390,8 @@ function Get-EncryptedData {
     )
 
         #$IntuneWinPath = Join-Path $env:GITHUB_WORKSPACE "automation-seed\baseline-scripts\IntuneDeploymentPackage\${appName}\${appName}.intunewin"
-        $IntuneWinPath= "D:\a\PackageAutomation\PackageAutomation\package\${appName}.intunewin"
-        $tempDir = "D:\a\PackageAutomation\PackageAutomation\package\${appName}\Extracted"
+        $IntuneWinPath= "D:\a\MWEScripts\MWEScripts\package\${appName}.intunewin"
+        $tempDir = "D:\a\MWEScripts\MWEScripts\package\${appName}\Extracted"
 
     if ($CommitSuccess -eq $true) {
         if (-not (Test-Path $tempDir)) {
@@ -528,6 +528,7 @@ if (-not $SetupFilePath -or -not $SetupFilePath.Trim()) {
         $LogoBase64 = $AppLogo
     }
 #>
+
 
 # --- 1) Create COMPLETE Win32LobApp with all required properties ---
 if($null -ne $LogoBase64 -and $LogoBase64 -ne "" -and $LogoBase64 -ne "undefined"){

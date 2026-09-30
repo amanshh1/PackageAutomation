@@ -22,6 +22,17 @@ on:
           description: 'Dependent Application Name'
           required: false
           type: string
+      publisher:
+        description: "Manufacturer of Application"
+        required: false
+        default: "Maersk"
+        type: string
+      description:
+        description: "App's Description"
+        required: false
+        default: "Deployed via GitHub Actions, As part of AppLifeCycle Automation Deployment of Winget Package only"
+        type: string
+
   workflow_dispatch:
     inputs:
       appName:
@@ -67,16 +78,15 @@ jobs:
       run: |
           $file = Get-ChildItem -Path "./package" -Filter "*.intunewin" -Recurse | Select-Object -First 1
           $logofile = Get-ChildItem -Path "./package" -Filter "app-logo*" -Recurse | Select-Object -First 1
-          if (-not $file) {
-            Write-Error "No .intunewin file found in ./package"
-            exit 1
-          }
-          <#  if (-not $logofile) {
-              Write-Error "No specific logo image found"
-              exit 0
-            }
+          <# if (-not $file) {
+                Write-Error "No .intunewin file found in ./package"
+                exit 1
+              }
+                if (-not $logofile) {
+                Write-Error "No specific logo image found"
+                exit 0
+              }
           #>
-
            Write-Host "Found package: $($file.FullName)"
            Write-Host "Found Logo file: $($logofile.FullName)"
           "package_path=$($file.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -89,6 +99,8 @@ jobs:
         APP_NAME: ${{ github.event.inputs.appName || 'Default App' }}
         GROUP_ID: ${{ github.event.inputs.groupId }}
         APP_LOGO: ${{ github.event.inputs.appLogo }}
+        APP_PUBLISHER: ${{ inputs.publisher }}
+        APP_DESCRIPTION: ${{ inputs.description }}
       run: |
         Write-Host $env:GITHUB_OUTPUT
 
@@ -97,13 +109,14 @@ jobs:
         $Params = @{
           IntuneWinPath   =   "${{ steps.find_file.outputs.package_path }}"
           AppName         =   $env:APP_NAME
-          Publisher       =   "Alpha"
+          Publisher       =   $env:APP_PUBLISHER
           InstallCmd      =   "ServiceUI.exe -process:explorer.exe Deploy-Application.exe -DeploymentType Install"
           UninstallCmd    =   "ServiceUI.exe -process:explorer.exe Deploy-Application.exe -DeploymentType Uninstall"
           DetectionFile   =   "Deploy-Application.exe"
           DetectionPath   =   "%ProgramFiles%"
           AppLogo         =   $logopath
           DependentAppId  =   $DependentApp
+          Description     =   $env:APP_DESCRIPTION
           
         }
 

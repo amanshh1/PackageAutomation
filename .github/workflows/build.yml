@@ -100,7 +100,7 @@ jobs:
 
   notify-App-Status:
     needs: Search-App
-    if: ${{ needs.Search-App.outputs.proceed == 'false' }}
+    if: False # ${{ needs.Search-App.outputs.proceed == 'false' }}
     uses: ./.github/workflows/ServiceNowNotifier.yml
     with:
       ticket: ${{ github.event.inputs.ticket }}
@@ -147,7 +147,7 @@ jobs:
           Write-Host "Application Uninstalled successfully with silent flag"
   notify:
     needs: [Silent-Unistallation,Search-App]
-    if: ${{ needs.Search-App.outputs.app_id_exist == 'false' }}
+    if: False # ${{ needs.Search-App.outputs.app_id_exist == 'false' }}
     uses: ./.github/workflows/ServiceNowNotifier.yml
     with:
       ticket: ${{ github.event.inputs.ticket }}
@@ -165,27 +165,30 @@ jobs:
     outputs:
       appName: ${{ github.event.inputs.appName }}   # ← Pass appName to next job
       job_status: ${{ job.status }}
+      publisher: ${{ steps.wrap.outputs.publisher }}
+      description: ${{ steps.wrap.outputs.description }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         
       - name: Search application in winget
+        id: wrap
         shell: powershell
         run: |
-          D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/application-wrapper/app-wrap.ps1 `
+          D:/a/MWEScripts/MWEScripts/automation-seed/workflow-scripts/application-wrapper/app-wrap.ps1 `
           -SearchApp "$env:APP_NAME" `
           -RegistryJson "$env:R_List" `
           -AppID "$env:APP_ID"
       - name: Modify the deployment file
         shell: powershell
         run: |
-          D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/application-wrapper/ReplaceFile.ps1
+          D:/a/MWEScripts/MWEScripts/automation-seed/workflow-scripts/application-wrapper/ReplaceFile.ps1
 
       - name: Build intunewin package
         id: build_step
         shell: powershell
         run: |
-          D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/build/build-intunewin.ps1 -appName "$env:APP_NAME"
+          D:/a/MWEScripts/MWEScripts/automation-seed/workflow-scripts/build/build-intunewin.ps1 -appName "$env:APP_NAME"
           $outFolder = Join-Path $env:GITHUB_WORKSPACE "automation-seed/baseline-scripts/IntuneDeploymentPackage/$env:APP_NAME"
           Write-Host "Looking for output inside: $outFolder"
           $IntuneWinfile = Get-ChildItem -Path $outFolder -Filter "*.intunewin" -Recurse | Select-Object -First 1
@@ -276,6 +279,8 @@ jobs:
     if: ${{ needs.Search-Build-Application.result == 'success'}}
     uses: ./.github/workflows/deploy.yml
     with:
+     publisher: ${{ needs.Search-Build-Application.outputs.publisher }}
+     description: ${{ needs.Search-Build-Application.outputs.description }}
      appName: ${{ needs.Search-Build-Application.outputs.appName }}
      appLogo: ${{ github.event.inputs.appLogo }}
      ticket:  ${{ github.event.inputs.ticket }}
