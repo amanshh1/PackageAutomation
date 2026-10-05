@@ -101,6 +101,10 @@ jobs:
         APP_LOGO: ${{ github.event.inputs.appLogo }}
         APP_PUBLISHER: ${{ inputs.publisher }}
         APP_DESCRIPTION: ${{ inputs.description }}
+        APP_NOTES: |
+          Package Type: Winget
+          Version: Latest
+          Deployer: Applifecycle Team (Automation)
       run: |
         Write-Host $env:GITHUB_OUTPUT
 
@@ -117,7 +121,7 @@ jobs:
           AppLogo         =   $logopath
           DependentAppId  =   $DependentApp
           Description     =   $env:APP_DESCRIPTION
-          
+          Notes = $env:APP_NOTES
         }
 
         if ($env:GROUP_ID -and $env:GROUP_ID.Trim()) {
