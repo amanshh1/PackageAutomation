@@ -100,7 +100,7 @@ jobs:
 
   notify-App-Status:
     needs: Search-App
-    if: ${{ needs.Search-App.outputs.proceed == 'false' }}
+    if: ${{ needs.Search-App.outputs.proceed == 'true' }}
     uses: ./.github/workflows/ServiceNowNotifier.yml
     with:
       ticket: ${{ github.event.inputs.ticket }}
@@ -147,7 +147,7 @@ jobs:
           Write-Host "Application Uninstalled successfully with silent flag"
   notify:
     needs: [Silent-Unistallation,Search-App]
-    if: ${{ needs.Search-App.outputs.app_id_exist == 'false' }}
+    if: ${{ needs.Search-App.outputs.app_id_exist == 'true' }}
     uses: ./.github/workflows/ServiceNowNotifier.yml
     with:
       ticket: ${{ github.event.inputs.ticket }}
