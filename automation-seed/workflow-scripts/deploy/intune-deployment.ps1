@@ -23,10 +23,11 @@ param(
     [string]$IntuneWinPath = "f:\y\s.intunewin",
 
     [Parameter(Mandatory)]
-    [string]$AppName,
+    [string]$AppName, 
     [string]$AppLogo,
     [string]$Publisher = "Custom App",
     [string]$Description,
+    [string]$Notes,
     [string]$InstallCmd = "setup.exe /silent",
     [string]$UninstallCmd = "setup.exe /uninstall /silent",
     [string]$DependentAppId,
@@ -43,8 +44,8 @@ param(
     # Detection rule settings
     [string]$DetectionPath = "%ProgramFiles%",
     [string]$DetectionFile = "YourApp.exe"
+ 
 )
-
 #region Helpers
 function Write-Info { param([string]$m) Write-Host "[INFO ] $m" -ForegroundColor Cyan }
 function Write-Warn { param([string]$m) Write-Host "[WARN ] $m" -ForegroundColor Yellow }
@@ -90,11 +91,11 @@ function Invoke-Graph {
         [string]$Method,
         [Parameter(Mandatory)][string]$Uri,
         [hashtable]$Headers,
-        [string]$Body
+        [object]$Body
     )
     try {
         if ($PSBoundParameters.ContainsKey('Body')) {
-            $resp = Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers -Body $Body
+            $resp = Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers -ContentType "application/json; charset=utf-8" -Body $Body
         }
         else {
             $resp = Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers
@@ -536,17 +537,19 @@ if($null -ne $LogoBase64 -and $LogoBase64 -ne "" -and $LogoBase64 -ne "undefined
     '@odata.type'                   = "#microsoft.graph.win32LobApp"
     displayName                     = $AppName
     description                     = $Description
+    notes                           = $Notes
     publisher                       = $Publisher
     fileName                        = $fileName  # Move up here
     setupFilePath                   = $SetupFilePath
     installCommandLine              = $InstallCmd
     uninstallCommandLine            = $UninstallCmd
-    applicableArchitectures         = "x64"
+    allowedArchitectures            = "x64"
     
       minimumSupportedOperatingSystem = @{
         '@odata.type' = "#microsoft.graph.windowsMinimumOperatingSystem"
         v10_0         = $true
     }
+    minimumSupportedWindowsRelease = "1909"
     largeIcon           = @{
     "@odata.type" = "microsoft.graph.mimeContent"
     type          = "image/png"
@@ -556,7 +559,7 @@ if($null -ne $LogoBase64 -and $LogoBase64 -ne "" -and $LogoBase64 -ne "undefined
         @{
             "@odata.type"        = "#microsoft.graph.win32LobAppRegistryRule"
             ruleType             = "detection"
-            keyPath              = "HKEY_LOCAL_MACHINE\SOFTWARE\Contoso\ServiceUI"
+            keyPath              = "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\ManageSoft Corp\ManageSoft\Usage Agent\CurrentVersion\Manual Mapper\Win_${AppName}_R1"
             valueName            = "Installed"
             operationType        = "exists"
             check32BitOn64System = $false
@@ -565,10 +568,14 @@ if($null -ne $LogoBase64 -and $LogoBase64 -ne "" -and $LogoBase64 -ne "undefined
     installExperience               = @{
         '@odata.type' = "#microsoft.graph.win32LobAppInstallExperience"
         runAsAccount  = "system"
+        deviceRestartBehavior = "suppress"
     }
-    returnCodes                     = @(
-        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 0; type = "success" }
+    returnCodes = @(
+        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 0;    type = "success" }
+        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 1707; type = "success" }
         @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 3010; type = "softReboot" }
+        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 1641; type = "hardReboot" }
+        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 1618; type = "retry" }
     )
 }
 }
@@ -578,22 +585,24 @@ else{
     '@odata.type'                   = "#microsoft.graph.win32LobApp"
     displayName                     = $AppName
     description                     = $Description
+    notes                           = $Notes
     publisher                       = $Publisher
     fileName                        = $fileName  # Move up here
     setupFilePath                   = $SetupFilePath
     installCommandLine              = $InstallCmd
     uninstallCommandLine            = $UninstallCmd
-    applicableArchitectures         = "x64"
+    allowedArchitectures            = "x64"
     
       minimumSupportedOperatingSystem = @{
         '@odata.type' = "#microsoft.graph.windowsMinimumOperatingSystem"
         v10_0         = $true
     }
+    minimumSupportedWindowsRelease = "1909"
     rules                           = @(
         @{
             "@odata.type"        = "#microsoft.graph.win32LobAppRegistryRule"
             ruleType             = "detection"
-            keyPath              = "HKEY_LOCAL_MACHINE\SOFTWARE\Contoso\ServiceUI"
+            keyPath              = "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\ManageSoft Corp\ManageSoft\Usage Agent\CurrentVersion\Manual Mapper\Win_${AppName}_R1"
             valueName            = "Installed"
             operationType        = "exists"
             check32BitOn64System = $false
@@ -602,10 +611,14 @@ else{
     installExperience               = @{
         '@odata.type' = "#microsoft.graph.win32LobAppInstallExperience"
         runAsAccount  = "system"
+        deviceRestartBehavior = "suppress"
     }
-    returnCodes                     = @(
-        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 0; type = "success" }
+    returnCodes = @(
+        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 0;    type = "success" }
+        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 1707; type = "success" }
         @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 3010; type = "softReboot" }
+        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 1641; type = "hardReboot" }
+        @{ '@odata.type' = "#microsoft.graph.win32LobAppReturnCode"; returnCode = 1618; type = "retry" }
     )
 }
 }
