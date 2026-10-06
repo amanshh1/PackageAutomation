@@ -33,6 +33,7 @@ permissions:
 jobs:
   update-job-status:
     runs-on: windows-latest
+    environment: AutomationTesting
     steps:
       - name: Update RITM Job Status
         shell: powershell
