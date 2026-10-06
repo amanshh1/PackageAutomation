@@ -32,7 +32,14 @@ on:
         required: false
         default: "Deployed via GitHub Actions, As part of AppLifeCycle Automation Deployment of Winget Package only"
         type: string
-
+    secrets:
+      SNOW_USER:
+        required: true
+      SNOW_PASS:
+        required: true
+      SNOW_INSTANCE:
+        required: true
+      
   workflow_dispatch:
     inputs:
       appName:
