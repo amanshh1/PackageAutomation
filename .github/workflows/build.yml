@@ -112,7 +112,10 @@ jobs:
       failure_message: |
               Packaging & Deployment is in progress.
       state: "work_in_progress"
-    secrets: inherit
+    secrets:
+      SNOW_USER: ${{ secrets.SNOW_USER }}
+      SNOW_PASS: ${{ secrets.SNOW_PASS }}
+      SNOW_INSTANCE: ${{ secrets.SNOW_INSTANCE }}
   Support-Silent-Flag:
      needs: Search-App
      runs-on: windows-2025
@@ -155,7 +158,10 @@ jobs:
       success_message: " The packaging and build process for ${{ github.event.inputs.appName }} has been initiated. The application is currently being processed, and this may take a few moments. Further updates will be provided once completed"
       failure_message: "Failed to initiate the packaging and build process for ${{ github.event.inputs.appName }}."
       state: "work_in_progress"
-    secrets: inherit
+    secrets:
+      SNOW_USER: ${{ secrets.SNOW_USER }}
+      SNOW_PASS: ${{ secrets.SNOW_PASS }}
+      SNOW_INSTANCE: ${{ secrets.SNOW_INSTANCE }}
 
   Search-Build-Application:
     runs-on: windows-2025
@@ -272,7 +278,10 @@ jobs:
       success_message: "The build and packaging process for ${{ github.event.inputs.appName }}  completed successfully with no issues."
       failure_message: "The build and packaging process for ${{ github.event.inputs.appName }} failed."
       state: "work_in_progress"
-    secrets: inherit
+    secrets:
+      SNOW_USER: ${{ secrets.SNOW_USER }}
+      SNOW_PASS: ${{ secrets.SNOW_PASS }}
+      SNOW_INSTANCE: ${{ secrets.SNOW_INSTANCE }}
 
   call-deploy:
     needs: [Search-Build-Application,Search-App]
@@ -285,5 +294,8 @@ jobs:
      appLogo: ${{ github.event.inputs.appLogo }}
      ticket:  ${{ github.event.inputs.ticket }}
      dependentApp: ${{needs.Search-App.outputs.dep_app_id}}
-    secrets: inherit
+    secrets:
+      SNOW_USER: ${{ secrets.SNOW_USER }}
+      SNOW_PASS: ${{ secrets.SNOW_PASS }}
+      SNOW_INSTANCE: ${{ secrets.SNOW_INSTANCE }}
    
