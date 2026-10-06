@@ -45,7 +45,9 @@ jobs:
           STATE: ${{ inputs.state }}
           SUCCESS_MSG: ${{ inputs.success_message }}
           FAILURE_MSG: ${{ inputs.failure_message }}
+        
         run: |
+          Write-Host "Snow Instance is: ${env:SNOW_INSTANCE}"
           # 1. Build status-specific message
             if ($env:JOB_STATUS -eq "success") {
                 $workNotes = " $($env:SUCCESS_MSG)"
