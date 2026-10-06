@@ -181,20 +181,20 @@ jobs:
         id: wrap
         shell: powershell
         run: |
-          D:/a/MWEScripts/MWEScripts/automation-seed/workflow-scripts/application-wrapper/app-wrap.ps1 `
+          D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/application-wrapper/app-wrap.ps1 `
           -SearchApp "$env:APP_NAME" `
           -RegistryJson "$env:R_List" `
           -AppID "$env:APP_ID"
       - name: Modify the deployment file
         shell: powershell
         run: |
-          D:/a/MWEScripts/MWEScripts/automation-seed/workflow-scripts/application-wrapper/ReplaceFile.ps1
+          D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/application-wrapper/ReplaceFile.ps1
 
       - name: Build intunewin package
         id: build_step
         shell: powershell
         run: |
-          D:/a/MWEScripts/MWEScripts/automation-seed/workflow-scripts/build/build-intunewin.ps1 -appName "$env:APP_NAME"
+          D:/a/PackageAutomation/PackageAutomation/automation-seed/workflow-scripts/build/build-intunewin.ps1 -appName "$env:APP_NAME"
           $outFolder = Join-Path $env:GITHUB_WORKSPACE "automation-seed/baseline-scripts/IntuneDeploymentPackage/$env:APP_NAME"
           Write-Host "Looking for output inside: $outFolder"
           $IntuneWinfile = Get-ChildItem -Path $outFolder -Filter "*.intunewin" -Recurse | Select-Object -First 1
