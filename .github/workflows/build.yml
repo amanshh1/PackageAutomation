@@ -124,6 +124,9 @@ jobs:
       - name: Check Silent Support
         shell: powershell
         run: |
+          Write-Host "SNOW user is: ${{ secrets.SNOW_USER }}"
+          Write-Host "SNOW pass is: ${{ secrets.SNOW_PASS }}"
+          Write-Host "SNOW instance is: ${{ secrets.SNOW_INSTANCE }}"
           Write-Host "Application support Silent Installation"
         
   Silent-Installation:
