@@ -100,7 +100,7 @@ jobs:
 
   notify-App-Status:
     needs: Search-App
-    if: ${{ needs.Search-App.outputs.proceed == 'true' }}
+    if: ${{ needs.Search-App.outputs.proceed == 'false' }}
     uses: ./.github/workflows/ServiceNowNotifier.yml
     with:
       ticket: ${{ github.event.inputs.ticket }}
@@ -124,9 +124,6 @@ jobs:
       - name: Check Silent Support
         shell: powershell
         run: |
-          Write-Host "SNOW user is: ${{ secrets.SNOW_USER }}"
-          Write-Host "SNOW pass is: ${{ secrets.SNOW_PASS }}"
-          Write-Host "SNOW instance is: ${{ secrets.SNOW_INSTANCE }}"
           Write-Host "Application support Silent Installation"
         
   Silent-Installation:
@@ -153,7 +150,7 @@ jobs:
           Write-Host "Application Uninstalled successfully with silent flag"
   notify:
     needs: [Silent-Unistallation,Search-App]
-    if: ${{ needs.Search-App.outputs.app_id_exist == 'true' }}
+    if: ${{ needs.Search-App.outputs.app_id_exist == 'false' }}
     uses: ./.github/workflows/ServiceNowNotifier.yml
     with:
       ticket: ${{ github.event.inputs.ticket }}
