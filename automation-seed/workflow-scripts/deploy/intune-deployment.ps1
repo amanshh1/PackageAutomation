@@ -391,8 +391,8 @@ function Get-EncryptedData {
     )
 
         #$IntuneWinPath = Join-Path $env:GITHUB_WORKSPACE "automation-seed\baseline-scripts\IntuneDeploymentPackage\${appName}\${appName}.intunewin"
-        $IntuneWinPath= "D:\a\MWEScripts\MWEScripts\package\${appName}.intunewin"
-        $tempDir = "D:\a\MWEScripts\MWEScripts\package\${appName}\Extracted"
+        $IntuneWinPath= "D:\a\PackageAutomation\PackageAutomation\package\${appName}.intunewin"
+        $tempDir = "D:\a\PackageAutomation\PackageAutomation\package\${appName}\Extracted"
 
     if ($CommitSuccess -eq $true) {
         if (-not (Test-Path $tempDir)) {
