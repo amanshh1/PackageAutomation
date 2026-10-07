@@ -294,8 +294,5 @@ jobs:
      appLogo: ${{ github.event.inputs.appLogo }}
      ticket:  ${{ github.event.inputs.ticket }}
      dependentApp: ${{needs.Search-App.outputs.dep_app_id}}
-    secrets:
-      SNOW_USER: ${{ secrets.SNOW_USER }}
-      SNOW_PASS: ${{ secrets.SNOW_PASS }}
-      SNOW_INSTANCE: ${{ secrets.SNOW_INSTANCE }}
+    secrets: inherit
    
