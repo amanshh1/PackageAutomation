@@ -111,7 +111,7 @@ jobs:
         
       failure_message: |
               Packaging & Deployment is in progress.
-      state: "work_in_progress"
+      state: "skip"
     secrets:
       SNOW_USER: ${{ secrets.SNOW_USER }}
       SNOW_PASS: ${{ secrets.SNOW_PASS }}
